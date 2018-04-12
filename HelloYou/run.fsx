@@ -35,10 +35,16 @@ let Run(req: HttpRequestMessage, log: TraceWriter) =
         log.Info("Webhook was triggered!")
         let! jsonContent = req.Content.ReadAsStringAsync() |> Async.AwaitTask
 
+        let jsonFormatter = System.Net.Http.Formatting.JsonMediaTypeFormatter()
+        jsonFormatter.SerializerSettings.ContractResolver 
+            <- Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver()
+
         try
             let name = JsonConvert.DeserializeObject<Name>(jsonContent)
-            return req.CreateResponse(HttpStatusCode.OK, 
-                { Greeting = sprintf "Hello %s %s!" name.First name.Last })
+            return req.CreateResponse(
+                HttpStatusCode.OK, 
+                { Greeting = sprintf "Hello %s %s!" name.First name.Last },
+                jsonFormatter)
         with _ ->
             return req.CreateResponse(HttpStatusCode.BadRequest)
     } |> Async.StartAsTask
